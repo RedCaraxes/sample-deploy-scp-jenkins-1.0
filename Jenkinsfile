@@ -1,38 +1,22 @@
-pipeline {
-  agent any
-  stages {
-    stage('Detectar variables en plantilla') {
-      steps {
-        script {
-          // Leer la plantilla
-          def tpl = readFile file: 'scp-template.json.tpl'
+stage('Detectar variables (Python)') {
+  steps {
+    script {
+      def raw = sh(script: "python3 extract_vars.py", returnStdout: true).trim()
+      def variables = readJSON text: raw
 
-          // Regex con comillas simples para evitar interpolación GString
-          def matcher = tpl =~ java.util.regex.Pattern.compile('\$\{([A-Za-z0-9_]+)\}')
-          def variables = matcher.collect { it[1] }.unique()
-
-          // Construir parámetros dinámicos
-          def inputs = variables.collect { varName ->
-            return string(name: varName, description: "Ingresa valor para ${varName}")
-          }
-
-          // Solicitar los valores al usuario
-          def values = input message: 'Variables requeridas para el SCP:', parameters: inputs
-
-          // Exportar como TF_VAR_ para que Terraform los use
-          values.each { k, v ->
-            env."TF_VAR_${k}" = v
-          }
-        }
+      def inputs = variables.collect { varName ->
+        return string(name: varName, description: "Valor para ${varName}")
       }
-    }
 
-    stage('Terraform Init & Apply') {
-      steps {
-        sh 'terraform init'
-        sh 'terraform apply -auto-approve'
+      def values = input message: 'Ingresa valores para el SCP', parameters: inputs
+
+      // Setea como TF_VAR_xx para que Terraform los detecte
+      values.each { k, v ->
+        env."TF_VAR_${k}" = v
       }
+
+      // Ejecutar de nuevo el script para generar terraform.auto.tfvars.json
+      sh 'python3 extract_vars.py'
     }
   }
 }
-
