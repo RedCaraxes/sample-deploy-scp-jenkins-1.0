@@ -38,6 +38,7 @@ pipeline {
             steps {
                 script {
                     // Genera el plan de Terraform
+                    sh 'terraform init'
                     sh 'terraform plan -out=tfplan'
                 }
             }
