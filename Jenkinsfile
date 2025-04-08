@@ -7,8 +7,8 @@ pipeline {
           // Leer la plantilla
           def tpl = readFile file: 'scp-template.json.tpl'
 
-          // Buscar todas las variables del tipo ${var}
-          def matcher = tpl =~ java.util.regex.Pattern.compile("\\$\\{([A-Za-z0-9_]+)\\}")
+          // Regex con comillas simples para evitar interpolación GString
+          def matcher = tpl =~ java.util.regex.Pattern.compile('\$\{([A-Za-z0-9_]+)\}')
           def variables = matcher.collect { it[1] }.unique()
 
           // Construir parámetros dinámicos
@@ -35,3 +35,4 @@ pipeline {
     }
   }
 }
+
